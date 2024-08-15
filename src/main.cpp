@@ -71,11 +71,11 @@ void setup()
   //  urutX = 10;
   //  urutY = 12;
   // device2
-  //  urutX = 24;
-  //  urutY = 26;
+   urutX = 24;
+   urutY = 26;
   // device3
-  urutX = 38;
-  urutY = 40;
+  // urutX = 38;
+  // urutY = 40;
   pinMode(keyPin, INPUT_PULLUP);
   pinMode(mechPin, INPUT_PULLUP);
   pinMode(pbpin, INPUT_PULLUP);
@@ -330,7 +330,8 @@ void sendData()
   String _txt;
   _doc["nodeCode"] = node_code;
   // _doc["time"] = pTime();
-  _doc["time"] = the_current_time + ((millis() - time_update_check)/1000);
+  String _the_current_time = String(the_current_time + ((millis() - time_update_check)/1000));
+  _doc["time"] = _the_current_time + String(random(100000,999999));
   _doc["0"] = getCurrentRSSI();
   _doc["1"] = keyStatus;
   _doc["2"] = mechStepMinutes;

@@ -54,6 +54,15 @@ String hexString;
 int load;
 
 int statusRufer;
+unsigned long the_current_time=0;
+unsigned long time_update_check=0;
+unsigned long time_update_interval= 60 * 1000;
+
+void updateTheTime(){
+  the_current_time = pTime();
+  time_update_check = millis();
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -129,6 +138,7 @@ void setup()
   }
   mechStepMinutes = eepromGetInt32(epromSave);
   mechStep = eepromGetInt32(epromSave);
+  updateTheTime();
 }
 
 void loop()
@@ -139,44 +149,59 @@ void loop()
 
   if (isFirst)
   {
-    if (millis() - daq_check > 6000)
+    if(millis() - time_update_check > time_update_interval){
+      updateTheTime();
+    }
+
+    if (millis() - daq_check > 1000)
     {
       if (digitalRead(mechPin) == 0)
       {
         mechStep++;
-      }
-      uwbRead();
-      sendData();
-      daq_check = millis();
-    }
 
-    keyStatus = !digitalRead(keyPin);
 
-    if (digitalRead(mechPin) == 0)
-    {
-      if (millis() - lastMilis > 1000)
-      {
-        lastMilis = millis();
-        mechStep++;
-      }
-
+        
       if (mechStep >= mechStepMinutes)
       {
         mechStepMinutes = mechStepMinutes + 30;
         Serial.print(mechStepMinutes);
         eepromWriteInt32(epromSave, mechStepMinutes);
       }
+      }
+      uwbRead();
+      sendData();
+      daq_check = millis();
+
+
     }
 
-    if (millis() - lastMilis2 > 1000)
-    {
-      uwbRead();
-      lastMilis2 = millis();
-      Serial.print("key : ");
-      Serial.println(keyStatus);
-      Serial.print("step : ");
-      Serial.println(mechStep);
-    }
+    keyStatus = !digitalRead(keyPin);
+
+    // if (digitalRead(mechPin) == 0)
+    // {
+    //   if (millis() - lastMilis > 1000)
+    //   {
+    //     lastMilis = millis();
+    //     mechStep++;
+    //   }
+
+    //   if (mechStep >= mechStepMinutes)
+    //   {
+    //     mechStepMinutes = mechStepMinutes + 30;
+    //     Serial.print(mechStepMinutes);
+    //     eepromWriteInt32(epromSave, mechStepMinutes);
+    //   }
+    // }
+
+    // if (millis() - lastMilis2 > 1000)
+    // {
+    //   uwbRead();
+      // lastMilis2 = millis();
+      // Serial.print("key : ");
+      // Serial.println(keyStatus);
+      // Serial.print("step : ");
+      // Serial.println(mechStep);
+    // }
 
     if (digitalRead(pbpin) == 0)
     {
@@ -191,8 +216,9 @@ void loop()
     }
   }
 
-  buttonPress();
+  // buttonPress();
 }
+
 void uwbRead()
 {
 
@@ -247,13 +273,13 @@ void uwbRead()
     }
     // if (Nilai[10] > 0 && Nilai[12] > 0)
     // {
-    Serial.println();
-    Serial.println("Forklift 1 :");
-    Serial.print("X Axis ");
-    Serial.println(Nilai[urutX]);
-    Serial.print("Y Axis ");
-    Serial.println(Nilai[urutY]);
-    Serial.println();
+    // Serial.println();
+    // Serial.println("Forklift 1 :");
+    // Serial.print("X Axis ");
+    // Serial.println(Nilai[urutX]);
+    // Serial.print("Y Axis ");
+    // Serial.println(Nilai[urutY]);
+    // Serial.println();
     // }
   }
   load = 0;
@@ -303,7 +329,8 @@ void sendData()
   DynamicJsonDocument _doc(_data_length);
   String _txt;
   _doc["nodeCode"] = node_code;
-  _doc["time"] = pTime();
+  // _doc["time"] = pTime();
+  _doc["time"] = the_current_time + ((millis() - time_update_check)/1000);
   _doc["0"] = getCurrentRSSI();
   _doc["1"] = keyStatus;
   _doc["2"] = mechStepMinutes;
@@ -311,15 +338,15 @@ void sendData()
   _doc["4"] = Yvalue;
   serializeJsonPretty(_doc, _txt);
   ptr_MQTT->publish(out_topic, _txt.c_str());
-  Serial.println(_txt);
-  delay(1000);
+  // Serial.println(_txt);
+  // delay(200);
   // Serial.println("Send Data");
 }
 
 void controlRelay(int _valOrder, int _condition)
 {
 
-  delay(1000);
+  // delay(1000);
 }
 
 void deviceRelaySwitch(DynamicJsonDocument source_doc)

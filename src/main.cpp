@@ -3,7 +3,7 @@
 #define WIFI_USE
 #include <Hendi-Multi-IoT.h>
 #include "Hendi-EEPROM.h"
-
+#include <HardwareSerial.h>
 int device = 3;
 
 int urutX;
@@ -21,6 +21,8 @@ void devicePing(DynamicJsonDocument source_doc);
 void deviceRandomFunction(DynamicJsonDocument source_doc);
 void autoRelay();
 void deviceSwitchConnection(DynamicJsonDocument source_doc);
+void arrreset();
+double hitungRataRata(int arr[], int size);
 
 void uwbRead();
 
@@ -45,7 +47,6 @@ long lastMilis2;
 #define RXD2 16
 #define TXD2 17
 
-int Nilai[500];
 int nilaike = 0;
 
 String NilaiString;
@@ -54,28 +55,33 @@ String hexString;
 int load;
 
 int statusRufer;
-unsigned long the_current_time=0;
-unsigned long time_update_check=0;
-unsigned long time_update_interval= 60 * 1000;
+unsigned long the_current_time = 0;
+unsigned long time_update_check = 0;
+unsigned long time_update_interval = 60 * 1000;
 
-void updateTheTime(){
+void updateTheTime()
+{
   the_current_time = pTime();
   time_update_check = millis();
 }
+
+int arrx[20];
+int arry[20];
+int savearr;
 
 void setup()
 {
   Serial.begin(115200);
   Serial2.begin(115200, SERIAL_8N1, 16, 17);
   // // device1
-  //  urutX = 10;
-  //  urutY = 12;
+  // urutX = 10;
+  // urutY = 12;
   // device2
-   urutX = 24;
-   urutY = 26;
+  //  urutX = 24;
+  //  urutY = 26;
   // device3
-  // urutX = 38;
-  // urutY = 40;
+  urutX = 38;
+  urutY = 40;
   pinMode(keyPin, INPUT_PULLUP);
   pinMode(mechPin, INPUT_PULLUP);
   pinMode(pbpin, INPUT_PULLUP);
@@ -139,6 +145,8 @@ void setup()
   mechStepMinutes = eepromGetInt32(epromSave);
   mechStep = eepromGetInt32(epromSave);
   updateTheTime();
+
+  arrreset();
 }
 
 void loop()
@@ -149,30 +157,70 @@ void loop()
 
   if (isFirst)
   {
-    if(millis() - time_update_check > time_update_interval){
+    // if (millis() - lastMilis > 10000)
+    // {
+    //   lastMilis = millis();
+
+    //   // Serial2.write(endcal, sizeof(hexPrinton));
+    //   // Serial2.write(endcal2, sizeof(hexPrinton));
+    //   // delay(10);
+    //   // Serial2.write(hexPrinton, sizeof(hexPrinton));
+    // }
+    if (millis() - time_update_check > time_update_interval)
+    {
       updateTheTime();
     }
 
     if (millis() - daq_check > 1000)
     {
+      // Serial2.write(endcal, sizeof(endcal));
+      // Serial2.write(endcal2, sizeof(endcal2));
+
       if (digitalRead(mechPin) == 0)
       {
         mechStep++;
 
+        if (mechStep >= mechStepMinutes)
+        {
+          mechStepMinutes = mechStepMinutes + 30;
+          Serial.print(mechStepMinutes);
+          eepromWriteInt32(epromSave, mechStepMinutes);
+        }
+      }
+      // uwbRead();
 
-        
-      if (mechStep >= mechStepMinutes)
-      {
-        mechStepMinutes = mechStepMinutes + 30;
-        Serial.print(mechStepMinutes);
-        eepromWriteInt32(epromSave, mechStepMinutes);
-      }
-      }
-      uwbRead();
+      int size = sizeof(arrx) / sizeof(arrx[0]);
+      Serial.print("x :");
+      Serial.println(hitungRataRata(arrx, size));
+      Serial.print("y :");
+      Serial.println(hitungRataRata(arry, size));
+      Serial.print("s :");
+      Serial.println(savearr);
+      arrreset();
+      savearr = 0;
       sendData();
       daq_check = millis();
+      // for (int m = 0; m < 100; m++)
+      // {
+      //   Serial.print("Data ke-");
+      //   Serial.print(m + 1);
+      //   Serial.print(": ");
+      //   Serial.println(Nilai[m]);
+      //   Serial.println(NilaiHex[m]);
+      //   Serial.println();
 
+      // }
+    }
+    else
+    {
 
+      uwbRead();
+      Serial.print(statusRufer);
+      delay(100);
+      Serial.print("\b");
+      arrx[savearr] = Xvalue;
+      arry[savearr] = Yvalue;
+      savearr++;
     }
 
     keyStatus = !digitalRead(keyPin);
@@ -196,11 +244,11 @@ void loop()
     // if (millis() - lastMilis2 > 1000)
     // {
     //   uwbRead();
-      // lastMilis2 = millis();
-      // Serial.print("key : ");
-      // Serial.println(keyStatus);
-      // Serial.print("step : ");
-      // Serial.println(mechStep);
+    // lastMilis2 = millis();
+    // Serial.print("key : ");
+    // Serial.println(keyStatus);
+    // Serial.print("step : ");
+    // Serial.println(mechStep);
     // }
 
     if (digitalRead(pbpin) == 0)
@@ -222,69 +270,76 @@ void loop()
 void uwbRead()
 {
 
-  for (int o = 0; o < 3;)
+  String *NilaiHex = new String[100];
+
+  // for (int o = 0; o < 3;)
+  // {
+
+  // o++;
+  if (Serial2.available())
   {
+    // Membaca sejumlah byte dari Serial
+    byte buffer[64]; // Buffer untuk menyimpan data
+    int bytesRead = Serial2.readBytes(buffer, sizeof(buffer));
 
-    o++;
-    if (Serial2.available())
+    // Mengonversi setiap byte dalam buffer menjadi hexadecimal dan mencetaknya
+    for (int i = 0; i < bytesRead; i++)
     {
-      // Membaca sejumlah byte dari Serial
-      byte buffer[64]; // Buffer untuk menyimpan data
-      int bytesRead = Serial2.readBytes(buffer, sizeof(buffer));
-
-      // Mengonversi setiap byte dalam buffer menjadi hexadecimal dan mencetaknya
-      for (int i = 0; i < bytesRead; i++)
+      String hexString = String(buffer[i], HEX);
+      if (hexString.length() < 2)
       {
-        String hexString = String(buffer[i], HEX);
-        if (hexString.length() < 2)
-        {
-          hexString = "0" + hexString; // Menambahkan 0 di depan jika perlu
-        }
+        hexString = "0" + hexString; // Menambahkan 0 di depan jika perlu
+      }
 
-        if (hexString == "01" || load >= 1)
+      if (hexString == "01" || load >= 1)
+      {
+        if (hexString == "83" || load >= 2)
         {
-          if (hexString == "83" || load >= 2)
-          {
-            load = 2;
-            // Serial.print(hexString);
-            // Serial.print(" ");
-            // Serial.print(hexToDec(hexString));
-            // Serial.print(" ");
-            nilaike++;
-            Nilai[nilaike] = hexToDec(hexString);
-          }
-          else
-          {
-            load = 1;
-          }
+          load = 2;
+          // Serial.print(hexString);
+          // Serial.print(" ");
+          // Serial.print(hexToDec(hexString));
+          // Serial.print(" ");
+          nilaike++;
+          NilaiHex[nilaike] = hexString;
+        }
+        else
+        {
+          load = 1;
         }
       }
     }
-    else
-    {
-      statusRufer++;
-    }
-    Xvalue = Nilai[urutX];
-    Yvalue = Nilai[urutY];
-    if (statusRufer >= 3)
-    {
-      Xvalue = 0;
-      Yvalue = 0;
-    }
-    // if (Nilai[10] > 0 && Nilai[12] > 0)
-    // {
-    // Serial.println();
-    // Serial.println("Forklift 1 :");
-    // Serial.print("X Axis ");
-    // Serial.println(Nilai[urutX]);
-    // Serial.print("Y Axis ");
-    // Serial.println(Nilai[urutY]);
-    // Serial.println();
-    // }
+    statusRufer = 1;
   }
+  else
+  {
+    statusRufer = 0;
+  }
+
+  Xvalue = hexToDec(NilaiHex[urutX - 1] + NilaiHex[urutX]);
+  Yvalue = hexToDec(NilaiHex[urutY - 1] + NilaiHex[urutY]);
+  // if (statusRufer >= 3)
+  // {
+  //   Xvalue = 0;
+  //   Yvalue = 0;
+  // }
+
+  // if (Nilai[10] > 0 && Nilai[12] > 0)
+  // {
+  // Serial.println();
+  // Serial.println("Forklift 1 :");
+  // Serial.print("X Axis ");
+  // Serial.println(hexToDec(NilaiHex[urutX - 1] + NilaiHex[urutX]));
+  // Serial.print("Y Axis ");
+  // Serial.println(hexToDec(NilaiHex[urutY - 1] + NilaiHex[urutY]));
+  // Serial.println();
+
+  // }
+  // }
   load = 0;
   nilaike = 0;
-  statusRufer = 0;
+
+  delete[] NilaiHex;
 }
 
 int hexToDec(String hexString)
@@ -330,8 +385,8 @@ void sendData()
   String _txt;
   _doc["nodeCode"] = node_code;
   // _doc["time"] = pTime();
-  String _the_current_time = String(the_current_time + ((millis() - time_update_check)/1000));
-  _doc["time"] = _the_current_time + String(random(100000,999999));
+  String _the_current_time = String(the_current_time + ((millis() - time_update_check) / 1000));
+  _doc["time"] = _the_current_time + String(random(100000, 999999));
   _doc["0"] = getCurrentRSSI();
   _doc["1"] = keyStatus;
   _doc["2"] = mechStepMinutes;
@@ -441,10 +496,79 @@ void ResetStep(DynamicJsonDocument source_doc)
 {
   int _cmd_code = source_doc["cmdCode"];
   int _reset = source_doc["reset"];
-  if (_reset = 1){
-      Serial.print("reset");
-      eepromWriteInt32(epromSave, 0);
-      mechStep = 0;
-      mechStepMinutes = 0;
+  if (_reset = 1)
+  {
+    Serial.print("reset");
+    eepromWriteInt32(epromSave, 0);
+    mechStep = 0;
+    mechStepMinutes = 0;
   }
+}
+
+void arrreset()
+{
+  for (int u = 0; u <= 19; ++u)
+  {
+    arrx[u] = 0;
+    arry[u] = 0;
+    delay(1);
+  }
+}
+
+double hitungRataRata(int arr[], int size)
+{
+  // 1. Hitung jumlah elemen non-0 dan simpan dalam array sementara
+  int *tempArr = new int[size];
+  int count = 0;
+  for (int i = 0; i < size; ++i)
+  {
+    if (arr[i] != 0)
+    {
+      tempArr[count++] = arr[i];
+    }
+  }
+
+  // Jika tidak ada elemen non-0, kembalikan 0
+  if (count == 0)
+  {
+    delete[] tempArr;
+    return 0.0;
+  }
+
+  if (count == 1)
+  {
+    delete[] tempArr;
+    return arr[0];
+  }
+
+  // 2. Mengurutkan array secara sederhana menggunakan metode bubble sort
+  for (int i = 0; i < count - 1; ++i)
+  {
+    for (int j = 0; j < count - i - 1; ++j)
+    {
+      if (tempArr[j] > tempArr[j + 1])
+      {
+        int temp = tempArr[j];
+        tempArr[j] = tempArr[j + 1];
+        tempArr[j + 1] = temp;
+      }
+    }
+  }
+
+  // 3. Mengambil 50% dari nilai yang diambil
+  int mid = count / 2;
+  int start = mid - (mid / 2);
+  int end = start + mid;
+
+  // Menghitung rata-rata dari elemen yang dipilih
+  double sum = 0;
+  for (int i = start; i < end; ++i)
+  {
+    sum += tempArr[i];
+  }
+
+  // Membersihkan memori
+  delete[] tempArr;
+
+  return sum / (end - start);
 }

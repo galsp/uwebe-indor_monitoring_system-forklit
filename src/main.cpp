@@ -8,6 +8,10 @@ int device = 3;
 
 int urutX;
 int urutY;
+String xvaluee;
+String yvaluee;
+int avx;
+int avy;
 
 void ResetStep(DynamicJsonDocument source_doc);
 
@@ -22,7 +26,7 @@ void deviceRandomFunction(DynamicJsonDocument source_doc);
 void autoRelay();
 void deviceSwitchConnection(DynamicJsonDocument source_doc);
 void arrreset();
-double hitungRataRata(int arr[], int size);
+int hitungRataRata(int arr[], int size);
 
 void uwbRead();
 
@@ -65,23 +69,25 @@ void updateTheTime()
   time_update_check = millis();
 }
 
-int arrx[20];
-int arry[20];
+int arrx[60];
+int arry[60];
 int savearr;
 
 void setup()
 {
   Serial.begin(115200);
   Serial2.begin(115200, SERIAL_8N1, 16, 17);
+
   // // device1
-  // urutX = 10;
-  // urutY = 12;
+  urutX = 10;
+  urutY = 12;
   // device2
   //  urutX = 24;
   //  urutY = 26;
   // device3
-  urutX = 38;
-  urutY = 40;
+  // urutX = 38;
+  // urutY = 40;
+
   pinMode(keyPin, INPUT_PULLUP);
   pinMode(mechPin, INPUT_PULLUP);
   pinMode(pbpin, INPUT_PULLUP);
@@ -190,12 +196,34 @@ void loop()
       // uwbRead();
 
       int size = sizeof(arrx) / sizeof(arrx[0]);
+      // Serial.println();
+      // Serial.print("size :");
+      // Serial.println(size);
+      // Serial.print("xarr :");
+      // for (int i = 0; i < size; i++)
+      // {
+      //   Serial.print(arrx[i]);
+      //   Serial.print(" ");
+      // }
+      // Serial.println();
+      // Serial.print("yarr :");
+      // for (int i = 0; i < size; i++)
+      // {
+      //   Serial.print(arry[i]);
+      //   Serial.print(" ");
+      // }
+
+      Serial.println();
       Serial.print("x :");
-      Serial.println(hitungRataRata(arrx, size));
+      avx = hitungRataRata(arrx, size);
+      Serial.println(avx);
       Serial.print("y :");
-      Serial.println(hitungRataRata(arry, size));
+      avy = hitungRataRata(arry, size);
+      Serial.println(avy);
       Serial.print("s :");
       Serial.println(savearr);
+      Serial.println("vx:" + xvaluee);
+      Serial.println("vy:" + yvaluee);
       arrreset();
       savearr = 0;
       sendData();
@@ -208,18 +236,18 @@ void loop()
       //   Serial.println(Nilai[m]);
       //   Serial.println(NilaiHex[m]);
       //   Serial.println();
-
       // }
     }
     else
     {
-
+      delay(50);
       uwbRead();
       Serial.print(statusRufer);
-      delay(100);
       Serial.print("\b");
       arrx[savearr] = Xvalue;
       arry[savearr] = Yvalue;
+      xvaluee += String(Xvalue) + ",";
+      yvaluee += String(Yvalue) + ",";
       savearr++;
     }
 
@@ -232,7 +260,7 @@ void loop()
     //     lastMilis = millis();
     //     mechStep++;
     //   }
-
+    //
     //   if (mechStep >= mechStepMinutes)
     //   {
     //     mechStepMinutes = mechStepMinutes + 30;
@@ -240,7 +268,7 @@ void loop()
     //     eepromWriteInt32(epromSave, mechStepMinutes);
     //   }
     // }
-
+    //
     // if (millis() - lastMilis2 > 1000)
     // {
     //   uwbRead();
@@ -390,8 +418,12 @@ void sendData()
   _doc["0"] = getCurrentRSSI();
   _doc["1"] = keyStatus;
   _doc["2"] = mechStepMinutes;
-  _doc["3"] = Xvalue;
-  _doc["4"] = Yvalue;
+  _doc["3"] = avx;
+  _doc["4"] = avy;
+  _doc["5"] = xvaluee;
+  _doc["6"] = yvaluee;
+  xvaluee = "";
+  yvaluee = "";
   serializeJsonPretty(_doc, _txt);
   ptr_MQTT->publish(out_topic, _txt.c_str());
   // Serial.println(_txt);
@@ -515,7 +547,7 @@ void arrreset()
   }
 }
 
-double hitungRataRata(int arr[], int size)
+int hitungRataRata(int arr[], int size)
 {
   // 1. Hitung jumlah elemen non-0 dan simpan dalam array sementara
   int *tempArr = new int[size];
@@ -524,7 +556,8 @@ double hitungRataRata(int arr[], int size)
   {
     if (arr[i] != 0)
     {
-      tempArr[count++] = arr[i];
+      tempArr[count] = arr[i];
+      count++;
     }
   }
 
@@ -537,9 +570,10 @@ double hitungRataRata(int arr[], int size)
 
   if (count == 1)
   {
+    return tempArr[0];
     delete[] tempArr;
-    return arr[0];
   }
+
 
   // 2. Mengurutkan array secara sederhana menggunakan metode bubble sort
   for (int i = 0; i < count - 1; ++i)
@@ -555,20 +589,34 @@ double hitungRataRata(int arr[], int size)
     }
   }
 
+  // Serial.println();
+  // Serial.print("count :");
+  // Serial.println(count);
+  // Serial.print("tempArr :");
+  // for (int i = 0; i < count; ++i)
+  // {
+  //   Serial.print(tempArr[i]);
+  //   Serial.print(" ");
+  // }
+  // Serial.println();
+  
   // 3. Mengambil 50% dari nilai yang diambil
-  int mid = count / 2;
-  int start = mid - (mid / 2);
-  int end = start + mid;
+  // int mid = count / 2;
+  // int start = mid - (mid / 2);
+  // int end = start + mid;
 
   // Menghitung rata-rata dari elemen yang dipilih
   double sum = 0;
-  for (int i = start; i < end; ++i)
+  for (int i = 0; i < count; ++i)
   {
     sum += tempArr[i];
   }
 
+  // Serial.println(sum);
   // Membersihkan memori
   delete[] tempArr;
-
-  return sum / (end - start);
+  // int a = end - start;
+  int b = sum / count;
+  // Serial.println(b);
+  return b;
 }
